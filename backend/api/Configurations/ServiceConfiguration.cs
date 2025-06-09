@@ -42,8 +42,13 @@ namespace api.Configurations
             services.AddScoped<IDiscountRepository, DiscountRepository>();
             services.AddScoped<IDiscountService, DiscountService>();
 
-            services.AddScoped<ICacheService, CacheService>();            services.AddScoped<IChatbotService, ChatbotService>();
+            services.AddScoped<ICacheService, CacheService>();
+
+            services.AddScoped<IChatbotService, ChatbotService>();
             services.AddScoped<GeminiChatbotService>();
+
+            services.AddScoped<IPaypalService, PaypalService>();
+            
             services.AddHttpClient();
 
             return services;

@@ -381,6 +381,7 @@ const cancelOrder = (orderId) => {
 
 onMounted(() => {
     fetchOrders();
+    emitter.on('order-updated', fetchOrders);
 });
 </script>
 

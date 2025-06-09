@@ -113,7 +113,7 @@ namespace api.Repositories
                 "oldest" => baseQuery.OrderBy(p => p.CreatedAt),
                 "priceinc" => baseQuery.OrderBy(p => p.SalePrice),
                 "pricedesc" => baseQuery.OrderByDescending(p => p.SalePrice),
-                "sold" => baseQuery.OrderByDescending(p => p.Sold),
+                "bestselling" => baseQuery.OrderByDescending(p => p.Sold),
                 _ => baseQuery.OrderByDescending(p => p.CreatedAt) // newest - default
             };
 

@@ -40,8 +40,9 @@ namespace api.Helpers
             _email = configuration["EmailSettings:Email"] ?? throw new InvalidOperationException("Email not found in configuration");
             _emailPassword = configuration["EmailSettings:Password"] ?? throw new InvalidOperationException("Email Password not found in configuration");
             _adminPassword = configuration["Admin:Password"] ?? throw new InvalidOperationException("Admin Password not found in configuration");
-            _adminPhoneNumber = configuration["Admin:PhoneNumber"] ?? throw new InvalidOperationException("Admin Phone Number not found in configuration");
-            _adminName = configuration["Admin:Name"] ?? throw new InvalidOperationException("Admin Name not found in configuration");            _adminUrl = configuration["Frontend:AdminUrl"] ?? "http://localhost:4000";
+            _adminPhoneNumber = configuration["Admin:PhoneNumber"] ?? "0333666999";
+            _adminName = configuration["Admin:Name"] ?? "SmartBuy Mobile";
+            _adminUrl = configuration["Frontend:AdminUrl"] ?? "http://localhost:4000";
             _userUrl = configuration["Frontend:UserUrl"] ?? "http://localhost:3000";
             _openAIKey = configuration["OpenAI:ApiKey"] ?? string.Empty;
         }

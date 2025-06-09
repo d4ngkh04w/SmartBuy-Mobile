@@ -106,5 +106,17 @@ namespace api.Controllers
             var order = await _orderService.CancelOrderAsync(id, userId);
             return ApiResponseHelper.Success("Order canceled successfully", order);
         }
+
+        [HttpGet("check-purchase/{productId:int}")]
+        [Authorize(AuthenticationSchemes = "user", Roles = "user")]
+        public async Task<IActionResult> CheckProductPurchase([FromRoute] int productId)
+        {
+            var userId = HttpContextHelper.CurrentUserId;
+            if (userId == Guid.Empty)
+                throw new UnauthorizedException();
+
+            bool hasPurchased = await _orderService.HasUserPurchasedProductAsync(userId, productId);
+            return ApiResponseHelper.Success("Purchase status retrieved", hasPurchased);
+        }
     }
 }

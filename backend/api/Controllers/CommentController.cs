@@ -41,6 +41,17 @@ namespace api.Controllers
             return ApiResponseHelper.Success("Product rating statistics retrieved successfully", ratingStats);
         }
 
+        [HttpGet("check-user-rating/{productId:int}")]
+        public async Task<IActionResult> CheckUserRating(int productId)
+        {
+            var userId = HttpContextHelper.CurrentUserId;
+            if (userId == Guid.Empty)
+                throw new UnauthorizedException();
+
+            bool hasRated = await _commentService.HasUserRatedProductAsync(productId, userId);
+            return ApiResponseHelper.Success("User rating check completed", hasRated);
+        }
+
         [HttpPost]
         public async Task<IActionResult> CreateComment([FromBody] CreateCommentDTO commentDTO)
         {
@@ -74,18 +85,6 @@ namespace api.Controllers
             await _commentService.DeleteCommentAsync(id, userId);
 
             return NoContent();
-        }
-
-        [HttpPost("{id:int}/reaction")]
-        public async Task<IActionResult> AddReaction(int id, [FromBody] CommentReactionDTO reactionDTO)
-        {
-            var userId = HttpContextHelper.CurrentUserId;
-            if (userId == Guid.Empty)
-                throw new UnauthorizedException();
-
-            var comment = await _commentService.AddReactionAsync(id, reactionDTO, userId);
-
-            return ApiResponseHelper.Success("Comment reaction added successfully", comment);
         }
     }
 }

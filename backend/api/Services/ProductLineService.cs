@@ -16,7 +16,7 @@ namespace api.Services
         private readonly IProductRepository _productRepository;
         private readonly IWebHostEnvironment _env;
         private readonly ICacheService _cacheService;
-        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(25);
+        private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(30);
         public ProductLineService(
             IProductLineRepository productLineRepository,
             IProductRepository productRepository,

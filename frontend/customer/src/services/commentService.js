@@ -38,6 +38,40 @@ class CommentService {
 			throw error;
 		}
 	}
+	// Check if the current user has already rated this product
+	async hasUserRatedProduct(productId) {
+		try {
+			const response = await axiosInstance.get(
+				`/comment/check-user-rating/${productId}`
+			);
+			console.log("Has user rated response:", response);
+			return response.data.data; // Returns true if user has already rated
+		} catch (error) {
+			console.error("Error checking if user has rated product:", error);
+			if (error.response && error.response.status === 401) {
+				// User not logged in
+				return false;
+			}
+			throw error; // Rethrow other errors
+		}
+	}
+	// Check if user has purchased a product
+	async hasUserPurchasedProduct(productId) {
+		try {
+			const response = await axiosInstance.get(
+				`/order/check-purchase/${productId}`
+			);
+			console.log("Has user purchased response:", response);
+			return response.data.data; // Returns true if user has purchased the product
+		} catch (error) {
+			console.error("Error checking product purchase:", error);
+			if (error.response && error.response.status === 401) {
+				// User not logged in
+				return false;
+			}
+			throw error; // Rethrow other errors to be handled by the component
+		}
+	}
 
 	// Create a new comment
 	async createComment(productId, content, rating, parentId = null) {
@@ -75,7 +109,6 @@ class CommentService {
 			throw error;
 		}
 	}
-
 	// Delete a comment
 	async deleteComment(commentId) {
 		try {
@@ -85,24 +118,6 @@ class CommentService {
 			return response.data;
 		} catch (error) {
 			console.error("Error deleting comment:", error);
-			throw error;
-		}
-	}
-
-	// Add reaction to a comment
-	async addReaction(commentId, isLike) {
-		try {
-			const reactionData = {
-				isLike,
-			};
-
-			const response = await axiosInstance.post(
-				`/comment/${commentId}/reaction`,
-				reactionData
-			);
-			return response.data;
-		} catch (error) {
-			console.error("Error adding reaction:", error);
 			throw error;
 		}
 	}

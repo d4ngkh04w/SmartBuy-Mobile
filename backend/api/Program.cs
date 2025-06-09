@@ -23,7 +23,6 @@ builder.Services.AddRateLimitConfiguration();
 builder.Services.AddMemoryCacheConfiguration();
 builder.Services.AddApplicationServices();
 
-
 var app = builder.Build();
 
 app.ConfigureMiddlewarePipeline();

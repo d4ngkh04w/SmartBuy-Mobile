@@ -278,5 +278,20 @@ namespace api.Services
 
             return validTransitions.ContainsKey(currentStatus) && validTransitions[currentStatus].Contains(newStatus);
         }
+
+        public async Task<bool> HasUserPurchasedProductAsync(Guid userId, int productId)
+        {
+            var completedOrders = await _orderRepository.GetOrdersByUserIdAsync(userId);
+
+            if (completedOrders == null || !completedOrders.Any())
+                return false;
+
+            var purchasedProduct = completedOrders
+                .Where(o => o.Status == "Hoàn thành")
+                .SelectMany(o => o.OrderItems)
+                .Any(item => item.ProductId == productId);
+
+            return purchasedProduct;
+        }
     }
 }

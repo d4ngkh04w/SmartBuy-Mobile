@@ -18,8 +18,6 @@ namespace api.Mappers
                 ProductId = comment.ProductId,
                 Rating = comment.Rating,
                 ParentId = comment.ParentId,
-                Likes = comment.Likes,
-                Dislikes = comment.Dislikes,
                 CreatedAt = DateTimeUtils.FormatDateTime(comment.CreatedAt),
                 UpdatedAt = DateTimeUtils.FormatDateTime(comment.UpdatedAt),
                 IsDeleted = comment.IsDeleted,

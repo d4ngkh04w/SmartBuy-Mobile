@@ -45,8 +45,13 @@ const handleLogin = async () => {
 		password.value = "";
 		showPassword.value = false;
 
-		// Navigate to home page
-		router.push("/");
+		// Điều hướng về trang trước nếu có redirect, ngược lại về trang chủ
+		const redirect = router.currentRoute.value.query.redirect;
+		if (redirect) {
+			router.replace(redirect);
+		} else {
+			router.push("/");
+		}
 	} catch (error) {
 		console.error("Error logging in:", error);
 
@@ -102,6 +107,13 @@ const handleGoogleLogin = async (response) => {
 
 		// Chuyển đến trang chủ
 		router.push("/");
+		// Điều hướng về trang trước nếu có redirect, ngược lại về trang chủ
+		const redirect = router.currentRoute.value.query.redirect;
+		if (redirect) {
+			router.replace(redirect);
+		} else {
+			router.push("/");
+		}
 	} catch (error) {
 		console.error("Error during Google login:", error);
 

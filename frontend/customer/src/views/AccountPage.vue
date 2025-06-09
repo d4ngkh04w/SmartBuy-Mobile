@@ -13,7 +13,7 @@
                 <div class="sidebar">
                     <sidebar-menu
                         v-model:active-menu="activeMenu"
-                        @logout="handleLogout"
+                        @logout="showLogoutConfirm = true"
                     />
                 </div>
 
@@ -42,6 +42,13 @@
                 </div>
             </div>
         </div>
+        <ConfirmationModal
+            v-if="showLogoutConfirm"
+            title="Xác nhận đăng xuất"
+            message="Bạn có chắc chắn muốn đăng xuất không?"
+            @confirm="confirmLogout"
+            @cancel="showLogoutConfirm = false"
+        />
     </div>
 </template>
 
@@ -56,11 +63,13 @@ import ProfileInfo from "@/components/account/ProfileInfo.vue";
 import PasswordChange from "@/components/account/PasswordChange.vue";
 import OrderManagement from "./OrderManagement.vue";
 import PurchaseHistory from "./PurchaseHistory.vue";
+import ConfirmationModal from "@/components/common/ConfirmationModal.vue";
 
 const route = useRoute();
 const router = useRouter();
 const activeMenu = ref("profile");
 const loading = ref(false);
+const showLogoutConfirm = ref(false);
 
 // Hàm xử lý quay về trang chủ
 const goToHome = () => {
@@ -109,13 +118,18 @@ const fetchUserData = async () => {
 const handleLogout = async () => {
     try {
         await authService.logout();
-        // Phát ra sự kiện đăng xuất để header có thể cập nhật trạng thái
         emitter.emit("user-logged-out");
         router.push("/");
     } catch (error) {
         console.error("Error during logout:", error);
     }
 };
+
+const confirmLogout = () => {
+    showLogoutConfirm.value = false;
+    handleLogout();
+};
+
 watch(activeMenu, () => {
     router.replace({ query: {} }); // Xoá hết query trên URL
 });

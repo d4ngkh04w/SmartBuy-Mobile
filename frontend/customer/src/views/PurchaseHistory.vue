@@ -71,10 +71,24 @@
 									Chi tiết
 								</button>
 								<button
+									v-if="
+										order.status === 'Hoàn thành' &&
+										!hasRatedAllProducts(order)
+									"
 									@click="reviewOrder(order.id)"
 									class="btn btn-review"
 								>
 									Đánh giá
+								</button>
+								<button
+									v-else-if="
+										order.status === 'Hoàn thành' &&
+										hasRatedAllProducts(order)
+									"
+									class="btn btn-reviewed"
+									disabled
+								>
+									Đã đánh giá
 								</button>
 							</div>
 						</td>
@@ -128,8 +142,10 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import Loading from "@/components/common/Loading.vue";
 import productService from "@/services/productService";
+import commentService from "@/services/commentService";
 import format from "@/utils/format";
 import Pagi from "@/components/common/Pagination.vue";
+import emitter from "../utils/evenBus.js";
 
 const router = useRouter();
 
@@ -142,6 +158,37 @@ const selectedOrder = ref(null);
 const pageSize = ref(10);
 const currentPage = ref(1);
 const totalOrders = ref(0);
+const ratedProductIds = ref(new Set()); // Track products that have been rated
+
+// Check if products in completed orders have been rated
+const checkRatedProducts = async (orders) => {
+	// Only check completed orders
+	const completedOrders = orders.filter(
+		(order) => order.status === "Hoàn thành"
+	);
+
+	// Create a list of all product IDs from completed orders
+	const productIdsToCheck = completedOrders.flatMap((order) =>
+		order.orderItems.map((item) => item.product.id)
+	);
+
+	// Check each product ID if it's been rated
+	for (const productId of productIdsToCheck) {
+		try {
+			const hasRated = await commentService.hasUserRatedProduct(
+				productId
+			);
+			if (hasRated) {
+				ratedProductIds.value.add(productId);
+			}
+		} catch (error) {
+			console.error(
+				`Error checking if product ${productId} has been rated:`,
+				error
+			);
+		}
+	}
+};
 
 const closePopup = () => {
 	popupVisible.value = false;
@@ -164,22 +211,25 @@ const showPopup = (order) => {
 const fetchHistoryOrders = async () => {
 	loading.value = true;
 	error.value = false;
-	const tmp = await productService
-		.getAllOrders()
-		.catch((err) => {
-			console.error("Lỗi khi lấy dữ liệu lịch sử mua hàng:", err);
-			error.value = true;
-		})
-		.finally(() => {
-			loading.value = false;
-		});
-	console.log("Lấy dữ liệu lịch sử mua hàng:", tmp);
-	allHistoryOrders.value = tmp.filter((order) =>
-		["Hoàn thành", "Đã trả hàng", "Đã huỷ"].includes(order.status)
-	);
-	console.log("Lấy dữ liệu lịch sử mua hàng:", historyOrders.value);
-	historyOrders.value = allHistoryOrders.value.slice(0, pageSize.value);
-	totalOrders.value = allHistoryOrders.value.length;
+	try {
+		const tmp = await productService.getAllOrders();
+
+		console.log("Lấy dữ liệu lịch sử mua hàng:", tmp);
+		allHistoryOrders.value = tmp.filter((order) =>
+			["Hoàn thành", "Đã trả hàng", "Đã huỷ"].includes(order.status)
+		);
+
+		// Check which products have already been rated
+		await checkRatedProducts(allHistoryOrders.value);
+
+		historyOrders.value = allHistoryOrders.value.slice(0, pageSize.value);
+		totalOrders.value = allHistoryOrders.value.length;
+	} catch (err) {
+		console.error("Lỗi khi lấy dữ liệu lịch sử mua hàng:", err);
+		error.value = true;
+	} finally {
+		loading.value = false;
+	}
 };
 
 const goToProductDetail = (productId) => {
@@ -203,16 +253,26 @@ const getStatusClass = (status) => {
 	}
 };
 
+// Check if all products in an order have been rated
+const hasRatedAllProducts = (order) => {
+	// If order doesn't have items, return false
+	if (!order.orderItems || order.orderItems.length === 0) return false;
+
+	// Check if all products in this order have been rated
+	return order.orderItems.every((item) =>
+		ratedProductIds.value.has(item.product.id)
+	);
+};
+
 // Xử lý đánh giá đơn hàng/sản phẩm
 const reviewOrder = (orderId) => {
-	alert(`Chức năng đánh giá cho đơn hàng ${orderId} sẽ sớm ra mắt!`);
 	console.log("Đánh giá đơn hàng:", orderId);
-	// Có thể điều hướng đến trang đánh giá
-	// router.push({ name: 'ReviewOrder', params: { id: orderId } });
+	router.push({ name: "review", params: { id: orderId } });
 };
 
 onMounted(async () => {
 	await fetchHistoryOrders();
+	emitter.on('order-updated', fetchHistoryOrders);
 });
 </script>
 
@@ -388,8 +448,10 @@ onMounted(async () => {
 /* Action Buttons */
 .action-buttons {
 	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
+	flex-direction: row;
+	gap: 10px;
+	flex-wrap: wrap;
+	justify-content: center;
 }
 
 .btn {
@@ -417,13 +479,19 @@ onMounted(async () => {
 }
 
 .btn-review {
-	background-color: #f8bbd0;
-	color: #ad1457;
+	background-color: var(--primary-color);
+	color: white;
 }
 
 .btn-review:hover {
-	background-color: #f48fb1;
-	transform: translateY(-2px);
+	background-color: #e12bc9;
+}
+
+.btn-reviewed {
+	background-color: #aaaaaa;
+	color: white;
+	cursor: not-allowed;
+	opacity: 0.7;
 }
 
 /* Popup Styles */

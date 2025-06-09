@@ -26,7 +26,9 @@ const props = defineProps({
 });
 
 const sortBy = ref("quantity");
-
+const formatID = (id) => {
+    return "SP" + id?.toString().padStart(4, "0") || "N/A";
+};
 const sortedProducts = computed(() => {
     if (!props.products || props.products.length === 0) return [];
 
@@ -132,7 +134,7 @@ watch(
                                 </div>
                             </td>
                             <td>
-                                <div class="product-sku">{{ product.sku }}</div>
+                                <div class="product-sku">{{ formatID(product.id) }}</div>
                             </td>
                             <td>
                                 <div class="quantity-cell">
@@ -395,4 +397,5 @@ watch(
         padding: 0.5rem;
     }
 }
+
 </style>

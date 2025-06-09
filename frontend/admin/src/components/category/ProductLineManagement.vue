@@ -56,9 +56,7 @@ const availableBrands = computed(() => {
         : brandsFromProductLines.value;
 });
 
-const uniqueBrandCount = computed(
-    () => new Set(productLines.value.map((pl) => pl.brandId)).size
-);
+
 
 const activeCount = computed(
     () => productLines.value.filter((pl) => pl.isActive).length
@@ -340,16 +338,6 @@ onMounted(async () => {
 
             <div class="status-card">
                 <div class="icon-wrapper">
-                    <i class="fas fa-trademark"></i>
-                </div>
-                <div class="status-content">
-                    <h3>{{ uniqueBrandCount }}</h3>
-                    <p>Thương hiệu</p>
-                </div>
-            </div>
-
-            <div class="status-card">
-                <div class="icon-wrapper">
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <div class="status-content">
@@ -418,10 +406,8 @@ onMounted(async () => {
                         </td>
                         <td class="brand-cell">
                             {{
+                                availableBrands.find((b) => b.id === productLine.brandId)?.name ||
                                 productLine.brandName ||
-                                availableBrands.find(
-                                    (b) => b.id === productLine.brandId
-                                )?.name ||
                                 "N/A"
                             }}
                         </td>

@@ -16,7 +16,6 @@ const router = createRouter({
 });
 router.beforeEach(async (to, from, next) => {
   document.title = to.meta.title || "SmartBuy Mobile";
-  
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
   const isAuthRoute = ['/login', '/register', '/not-logged-in'].includes(to.path);
 
@@ -32,9 +31,12 @@ router.beforeEach(async (to, from, next) => {
       } catch (logoutError) {
         console.error("Logout error:", logoutError);
       }
-      
       if (!isAuthRoute) {
-        return next('/not-logged-in');
+        // Lưu lại đường dẫn hiện tại để redirect sau đăng nhập
+        return next({
+          path: '/login',
+          query: { redirect: to.fullPath }
+        });
       }
     }
     next('/'); // Fallback

@@ -18,9 +18,21 @@ class MeService {
 		const config = { ...options };
 		try {
 			const response = await instance.get("/user/me", config);
+			if (response.data && response.data.success) {
+				localStorage.setItem("isLogin", "true");
+				localStorage.setItem(
+					"userData",
+					JSON.stringify(response.data.data)
+				);
+			} else {
+				localStorage.removeItem("isLogin");
+				localStorage.removeItem("userData");
+			}
 			return response.data.data;
 		} catch (error) {
 			console.error("Error fetching user data:", error);
+			localStorage.removeItem("isLogin");
+			localStorage.removeItem("userData");
 			throw error;
 		}
 	}

@@ -78,6 +78,7 @@ class AuthService {
 	async logout() {
 		emitter.emit("logout");
 		localStorage.removeItem("isLogin");
+		localStorage.removeItem("userData");
 		return await instance.post("/auth/logout");
 	}
 

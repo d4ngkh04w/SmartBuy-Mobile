@@ -1,4 +1,3 @@
-using System.ComponentModel.DataAnnotations;
 using api.Utils;
 
 namespace api.DTOs.Comment
@@ -13,8 +12,6 @@ namespace api.DTOs.Comment
         public int ProductId { get; set; }
         public int? Rating { get; set; }
         public int? ParentId { get; set; }
-        public int Likes { get; set; }
-        public int Dislikes { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string CreatedAtString => CreatedAt.ToRelativeTimeString();

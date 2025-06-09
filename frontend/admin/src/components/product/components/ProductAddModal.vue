@@ -119,12 +119,13 @@
                                     Giá nhập <span class="required">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     id="importPrice"
-                                    v-model="productForm.importPrice"
+                                    v-model="importPriceDisplay"
                                     placeholder="Giá nhập (lớn hơn 0)"
-                                    min="0.01"
-                                    step="0.01"
+                                    inputmode="numeric"
+                                    @input="onImportPriceInput"
+                                    autocomplete="off"
                                 />
                                 <span
                                     v-if="formErrors.importPrice"
@@ -139,12 +140,13 @@
                                     Giá bán <span class="required">*</span>
                                 </label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     id="salePrice"
-                                    v-model="productForm.salePrice"
+                                    v-model="salePriceDisplay"
                                     placeholder="Giá bán (lớn hơn 0)"
-                                    min="0.01"
-                                    step="0.01"
+                                    inputmode="numeric"
+                                    @input="onSalePriceInput"
+                                    autocomplete="off"
                                 />
                                 <span
                                     v-if="formErrors.salePrice"
@@ -786,6 +788,41 @@ const saveProduct = async () => {
     } finally {
         saving.value = false;
     }
+};
+
+// Format currency function
+function formatCurrency(value) {
+    if (value === null || value === undefined || value === "") return "";
+    const number = Number(value.toString().replace(/[^\d]/g, ""));
+    if (isNaN(number)) return "";
+    return number.toLocaleString("vi-VN");
+}
+
+const importPriceDisplay = ref("");
+const salePriceDisplay = ref("");
+
+watch(
+    () => productForm.value.importPrice,
+    (val) => {
+        importPriceDisplay.value = formatCurrency(val);
+    }
+);
+watch(
+    () => productForm.value.salePrice,
+    (val) => {
+        salePriceDisplay.value = formatCurrency(val);
+    }
+);
+
+const onImportPriceInput = (e) => {
+    let raw = e.target.value.replace(/[^\d]/g, "");
+    importPriceDisplay.value = formatCurrency(raw);
+    productForm.value.importPrice = raw ? Number(raw) : "";
+};
+const onSalePriceInput = (e) => {
+    let raw = e.target.value.replace(/[^\d]/g, "");
+    salePriceDisplay.value = formatCurrency(raw);
+    productForm.value.salePrice = raw ? Number(raw) : "";
 };
 </script>
 

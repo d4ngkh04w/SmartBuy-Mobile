@@ -82,20 +82,6 @@ namespace api.Repositories
             return await _db.SaveChangesAsync() > 0;
         }
 
-        public async Task<bool> AddReactionAsync(int commentId, Guid userId, bool isLike)
-        {
-            var comment = await _db.Comments.FindAsync(commentId);
-            if (comment == null || comment.IsDeleted)
-                return false;
-
-            if (isLike)
-                comment.Likes += 1;
-            else
-                comment.Dislikes += 1;
-
-            _db.Comments.Update(comment);
-            return await _db.SaveChangesAsync() > 0;
-        }
         public async Task<double> GetProductAverageRatingAsync(int productId)
         {
             var ratings = await _db.Comments
@@ -142,6 +128,13 @@ namespace api.Repositories
             }
 
             return distribution;
+        }
+
+        public async Task<bool> HasUserRatedProductAsync(Guid userId, int productId)
+        {
+            return await _db.Comments
+                .AnyAsync(c => c.UserId == userId && c.ProductId == productId
+                       && c.Rating.HasValue && !c.IsDeleted && c.ParentId == null);
         }
     }
 }
