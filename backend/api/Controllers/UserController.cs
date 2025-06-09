@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/user")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "smart", Roles = "admin,user")]
-    public class UserController : ControllerBase
+    public class UserController : BaseController
     {
         private readonly IUserService _userService;
         public UserController(IUserService userService)

@@ -6,17 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/dashboard")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "admin", Roles = "admin")]
-    public class DashboardController : ControllerBase
+    public class DashboardController : BaseController
     {
         private readonly IDashboardService _dashboardService;
 
         public DashboardController(IDashboardService dashboardService)
         {
             _dashboardService = dashboardService;
-        }        [HttpGet("top-products")]
+        }
+        [HttpGet("top-products")]
         public async Task<IActionResult> GetTopProducts([FromQuery] DashboardDateRangeQuery query)
         {
             var topProducts = await _dashboardService.GetTopProductsAsync(query);

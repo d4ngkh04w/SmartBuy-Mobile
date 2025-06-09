@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/user/auth")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "user", Roles = "user")]
-    public class AuthUserController : ControllerBase
+    public class AuthUserController : BaseUserAuthController
     {
         private readonly IAuthService _authService;
 
@@ -67,8 +65,7 @@ namespace api.Controllers
         [HttpPost("send-verification-email")]
         public async Task<IActionResult> SendVerificationEmail()
         {
-            var email = HttpContextHelper.CurrentUserEmail;
-            await _authService.SendEmailVerificationAsync(email);
+            await _authService.SendEmailVerificationAsync();
             return ApiResponseHelper.Success<object>("Email sent successfully", null);
         }
 

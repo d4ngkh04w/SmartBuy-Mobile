@@ -8,50 +8,75 @@ namespace api.Services
 {
     public class EmailService : IEmailService
     {
+        private readonly ILogger<EmailService> _logger;
+
+        public EmailService(ILogger<EmailService> logger)
+        {
+            _logger = logger;
+        }
+
         public async Task<bool> SendEmailAsync(string to, string subject, string body, bool isHtml = true)
         {
-            var email = new MimeMessage();
-
-            // Thiết lập thông tin người gửi
-            email.From.Add(new MailboxAddress(
-                ConfigHelper.EmailDisplayName,
-                ConfigHelper.EmailSender));
-
-            // Thiết lập người nhận
-            email.To.Add(MailboxAddress.Parse(to));
-
-            // Thiết lập tiêu đề email
-            email.Subject = subject;
-
-            // Thiết lập nội dung email
-            var bodyBuilder = new BodyBuilder();
-            if (isHtml)
+            try
             {
-                bodyBuilder.HtmlBody = body;
+                // Validate email address
+                if (!MailboxAddress.TryParse(to, out var toAddress))
+                {
+                    _logger.LogError("Invalid email address: {Email}", to);
+                    return false;
+                }
+
+                var email = new MimeMessage();
+
+                // Thiết lập thông tin người gửi
+                email.From.Add(new MailboxAddress(
+                    ConfigHelper.EmailDisplayName,
+                    ConfigHelper.EmailSender));
+
+                // Thiết lập người nhận
+                email.To.Add(toAddress);
+
+                // Thiết lập tiêu đề email
+                email.Subject = subject;
+
+                // Thiết lập nội dung email
+                var bodyBuilder = new BodyBuilder();
+                if (isHtml)
+                {
+                    bodyBuilder.HtmlBody = body;
+                }
+                else
+                {
+                    bodyBuilder.TextBody = body;
+                }
+
+                email.Body = bodyBuilder.ToMessageBody();
+
+                // Cấu hình SMTP client với timeout và retry
+                using var smtp = new SmtpClient();
+                smtp.Timeout = 30000; // 30 seconds timeout
+
+                await smtp.ConnectAsync(
+                    ConfigHelper.EmailHost,
+                    ConfigHelper.EmailPort,
+                    SecureSocketOptions.StartTls);
+
+                await smtp.AuthenticateAsync(
+                    ConfigHelper.Email,
+                    ConfigHelper.EmailPassword);
+
+                // Gửi email
+                await smtp.SendAsync(email);
+                await smtp.DisconnectAsync(true);
+
+                _logger.LogInformation("Email sent successfully to {Email}", to);
+                return true;
             }
-            else
+            catch (Exception ex)
             {
-                bodyBuilder.TextBody = body;
+                _logger.LogError(ex, "Failed to send email to {Email}", to);
+                return false;
             }
-
-            email.Body = bodyBuilder.ToMessageBody();
-
-            // Cấu hình SMTP client
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(
-                ConfigHelper.EmailHost,
-                ConfigHelper.EmailPort,
-                SecureSocketOptions.StartTls);
-
-            await smtp.AuthenticateAsync(
-                ConfigHelper.Email,
-                ConfigHelper.EmailPassword);
-
-            // Gửi email
-            await smtp.SendAsync(email);
-            await smtp.DisconnectAsync(true);
-
-            return true;
         }
 
         public async Task<bool> SendPasswordResetEmailAsync(string email, string resetToken)

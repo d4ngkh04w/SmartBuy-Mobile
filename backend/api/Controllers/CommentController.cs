@@ -7,10 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/comment")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "smart", Roles = "admin,user")]
-    public class CommentController : ControllerBase
+    public class CommentController : BaseController
     {
         private readonly ICommentService _commentService;
 

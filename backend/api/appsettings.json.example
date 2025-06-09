@@ -34,7 +34,8 @@
         "Password": "YOUR_ADMIN_PASSWORD",
         "Name": "YOUR_ADMIN_NAME",
         "PhoneNumber": "YOUR_ADMIN_PHONE_NUMBER"
-    },    "Frontend": {
+    },    
+    "Frontend": {
 		"AdminUrl": "YOUR_ADMIN_URL",
 		"UserUrl": "YOUR_USER_URL"
 	},

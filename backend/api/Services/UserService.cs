@@ -102,8 +102,16 @@ namespace api.Services
 
             // Cập nhật thông tin người dùng
             user.Name = userDTO.Name?.Trim() ?? user.Name;
-            user.Email = userDTO.Email ?? user.Email;
-            user.PhoneNumber = userDTO.PhoneNumber ?? user.PhoneNumber;
+            if (!string.IsNullOrEmpty(userDTO.Email))
+            {
+                user.Email = userDTO.Email.Trim().ToLower();
+                user.EmailConfirmed = false;
+            }
+            if (!string.IsNullOrEmpty(userDTO.PhoneNumber))
+            {
+                user.PhoneNumber = userDTO.PhoneNumber.Trim();
+                user.PhoneNumberConfirmed = false;
+            }
             user.Address = userDTO.Address?.Trim() ?? user.Address;
             user.Gender = userDTO.Gender?.Trim() ?? user.Gender;
             user.DateOfBirth = userDTO.DateOfBirth ?? user.DateOfBirth;

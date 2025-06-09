@@ -35,13 +35,11 @@ namespace api.Repositories
         {
             var productLinesQuery = _db.ProductLines.AsQueryable();
 
-            // Lọc theo trạng thái IsActive nếu có
             if (query.IsActive.HasValue)
             {
                 productLinesQuery = productLinesQuery.Where(pl => pl.IsActive == query.IsActive.Value);
             }
 
-            // Filter by brand ID if specified
             if (query.BrandId.HasValue)
             {
                 productLinesQuery = productLinesQuery.Where(pl => pl.BrandId == query.BrandId.Value);
@@ -72,10 +70,9 @@ namespace api.Repositories
                 productLinesQuery = productLinesQuery.Reverse();
             }
 
-            // Thay vì chỉ Include Brand, cần giữ nguyên việc Include Products nếu đã được yêu cầu
             var query_with_brand = productLinesQuery.Include(pl => pl.Brand);
 
-            return await query_with_brand.ToListAsync();
+            return await query_with_brand.AsNoTracking().ToListAsync();
         }
 
         public async Task<ProductLine?> GetProductLineByIdAsync(int id, ProductLineQuery? query = null)

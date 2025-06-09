@@ -10,7 +10,7 @@ namespace api.Interfaces.Services
         public Task ForgotPasswordAsync(ForgotPasswordDTO forgotPasswordDto);
         public Task ResetPasswordAsync(ResetPasswordDTO resetPasswordDto);
         public Task ChangePasswordAsync(ChangePasswordDTO changePasswordDto, Guid userId);
-        public Task SendEmailVerificationAsync(string email);
+        public Task SendEmailVerificationAsync();
         public Task VerifyEmailAsync(VerifyEmailDTO verifyEmailDto);
     }
 }

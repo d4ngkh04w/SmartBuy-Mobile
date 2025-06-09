@@ -6,9 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/chatbot")]
-    [ApiController]
-    public class ChatbotController : ControllerBase
+    public class ChatbotController : BaseController
     {
         private readonly IChatbotService _chatbotService;
 

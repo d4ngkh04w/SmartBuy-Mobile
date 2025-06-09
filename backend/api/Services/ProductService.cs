@@ -91,7 +91,7 @@ namespace api.Services
             var product = productDTO.ToProductModel();
             product.Detail = productDTO.ToProductDetailModel();
 
-            var createdProduct = await _productRepository.CreateAsync(product);            // Xóa cache danh sách sản phẩm
+            var createdProduct = await _productRepository.CreateAsync(product);
             _cacheService.RemoveAllProductsCache();
 
             return await createdProduct.ToProductDTO(_commentRepository);
@@ -154,18 +154,6 @@ namespace api.Services
             bool wasMainDeleted = false;
             if (dto.RemoveImageIds?.Any() == true)
             {
-                // foreach (var id in dto.RemoveImageIds)
-                // {
-                //     var img = color.Images.FirstOrDefault(i => i.Id == id);
-                //     if (img != null)
-                //     {
-                //         if (img.IsMain) wasMainDeleted = true;
-
-                //         ImageUtils.DeleteImage(_env.WebRootPath + img.ImagePath);
-                //         color.Images.Remove(img);
-                //     }
-                // }
-
                 var imagesToDelete = color.Images.Where(i => dto.RemoveImageIds.Contains(i.Id)).ToList();
 
                 wasMainDeleted = imagesToDelete.Any(i => i.IsMain);
@@ -202,19 +190,6 @@ namespace api.Services
                 {
                     foreach (var img in color.Images) img.IsMain = false;
                 }
-
-                // for (int i = 0; i < dto.AddImages.Count; i++)
-                // {
-                //     var file = dto.AddImages[i];
-                //     var path = await ImageUtils.SaveImageAsync(file, _env.WebRootPath, "products", 5 * 1024 * 1024);
-
-                //     color.Images.Add(new ProductImage
-                //     {
-                //         ImagePath = path,
-                //         IsMain = dto.MainImageIndex == i,
-                //         ColorId = color.Id
-                //     });
-                // }
                 var tasks = dto.AddImages.Select(async (file, i) =>
                 {
                     var path = await ImageUtils.SaveImageAsync(file, _env.WebRootPath, "products", 5 * 1024 * 1024);
@@ -246,7 +221,8 @@ namespace api.Services
             await _productRepository.DeleteAsync(product);
             _cacheService.RemoveProductCache(id);
             _cacheService.RemoveAllProductsCache();
-        }        public async Task<ProductPagiDTO> GetPagedProductsAsync(ProductQuery productQuery)
+        }
+        public async Task<ProductPagiDTO> GetPagedProductsAsync(ProductQuery productQuery)
         {
             var (items, totalItems) = await _productRepository.GetPagedProductsAsync(productQuery);
 
@@ -307,22 +283,6 @@ namespace api.Services
                 {
                     mainImageIndex = 0;
                 }
-
-                // Thêm từng ảnh vào cơ sở dữ liệu
-                // for (int i = 0; i < productColorDTO.Images.Count; i++)
-                // {
-                //     var image = productColorDTO.Images[i];
-                //     var filePath = await ImageUtils.SaveImageAsync(image, _env.WebRootPath, "products", 5 * 1024 * 1024);
-
-                //     var productImage = new ProductImage
-                //     {
-                //         ImagePath = filePath,
-                //         IsMain = i == mainImageIndex,
-                //         ColorId = savedColor.Id
-                //     };
-
-                //     await _productRepository.AddImageAsync(productImage);
-                // }
                 var productImageTasks = productColorDTO.Images.Select(async (image, i) =>
                 {
                     var filePath = await ImageUtils.SaveImageAsync(image, _env.WebRootPath, "products", 5 * 1024 * 1024);
@@ -388,10 +348,6 @@ namespace api.Services
             _ = await _productRepository.GetByIdAsync(productId) ?? throw new NotFoundException("Product not found");
             var productColor = await _productRepository.GetProductColorAsync(productId, colorId) ?? throw new NotFoundException("Product color not found");
 
-            // foreach (var image in productColor.Images)
-            // {
-            //     ImageUtils.DeleteImage(_env.WebRootPath + image.ImagePath);
-            // }
             await Task.WhenAll(productColor.Images.Select(img =>
                 ImageUtils.DeleteImageAsync(_env.WebRootPath + img.ImagePath)
             ));

@@ -14,7 +14,6 @@ namespace api.Repositories
         {
             _db = context;
         }
-
         public async Task<IEnumerable<Product>> GetAllAsync()
         {
             return await _db.Products
@@ -24,11 +23,9 @@ namespace api.Repositories
                 .Include(p => p.Discounts)
                     .ThenInclude(d => d.Discount)
                 .Include(p => p.Detail)
-                // .Include(p => p.ProductTags)
-                // .ThenInclude(pt => pt.Tag)
+                .AsNoTracking()
                 .ToListAsync();
         }
-
         public async Task<Product?> GetByIdAsync(int id)
         {
             return await _db.Products
@@ -38,8 +35,6 @@ namespace api.Repositories
                 .Include(p => p.Discounts)
                     .ThenInclude(d => d.Discount)
                 .Include(p => p.Detail)
-                // .Include(p => p.ProductTags)
-                //     .ThenInclude(pt => pt.Tag)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
@@ -75,73 +70,64 @@ namespace api.Repositories
         }
 
         public async Task<(List<Product> Items, int TotalItems)> GetPagedProductsAsync(ProductQuery productQuery)
-        {            var query = _db.Products
-                .Include(p => p.Colors)
-                    .ThenInclude(c => c.Images)
-                .Include(p => p.ProductLine)
-                .Include(p => p.Discounts)
-                    .ThenInclude(pd => pd.Discount)
-                .AsQueryable();
+        {
+            var baseQuery = _db.Products.AsQueryable();
 
             if (productQuery.IsActive.HasValue)
             {
-                query = query.Where(p => p.IsActive == productQuery.IsActive.Value);
+                baseQuery = baseQuery.Where(p => p.IsActive == productQuery.IsActive.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(productQuery.Search))
             {
                 string lowerKey = productQuery.Search.Trim().ToLower();
-                query = query.Where(p =>
-                    p.Name.ToLower().Contains(lowerKey));
-            }            if (!string.IsNullOrWhiteSpace(productQuery.BrandName))
-            {
-                string lowerBrand = productQuery.BrandName.Trim().ToLower();
-                var brandInDb = _db.Brands
-                    .Where(b => b.Name.ToLower().Contains(lowerBrand))
-                    .FirstOrDefault();
-
-                if (brandInDb != null)
-                {
-                    query = query.Where(p => p.ProductLine!.BrandId == brandInDb.Id);
-                }
+                baseQuery = baseQuery.Where(p => p.Name.ToLower().Contains(lowerKey));
             }
 
             if (productQuery.ProductLineId.HasValue)
             {
-                query = query.Where(p => p.ProductLineId == productQuery.ProductLineId.Value);
+                baseQuery = baseQuery.Where(p => p.ProductLineId == productQuery.ProductLineId.Value);
+            }
+
+            // Optimize brand filtering with index usage
+            if (!string.IsNullOrWhiteSpace(productQuery.BrandName))
+            {
+                string lowerBrand = productQuery.BrandName.Trim().ToLower();
+                baseQuery = baseQuery.Where(p =>
+                    p.ProductLine!.Brand!.Name.ToLower().Contains(lowerBrand));
             }
 
             if (productQuery.MinPrice.HasValue)
             {
-                query = query.Where(p => p.SalePrice >= productQuery.MinPrice.Value);
+                baseQuery = baseQuery.Where(p => p.SalePrice >= productQuery.MinPrice.Value);
             }
 
             if (productQuery.MaxPrice.HasValue)
             {
-                query = query.Where(p => p.SalePrice <= productQuery.MaxPrice.Value);
+                baseQuery = baseQuery.Where(p => p.SalePrice <= productQuery.MaxPrice.Value);
             }
 
-            switch (productQuery.SortBy)
+            // Apply sorting
+            baseQuery = productQuery.SortBy?.ToLower() switch
             {
-                case "oldest":
-                    query = query.OrderBy(p => p.CreatedAt);
-                    break;
-                case "priceInc":
-                    query = query.OrderBy(p => p.SalePrice);
-                    break;
-                case "priceDesc":
-                    query = query.OrderByDescending(p => p.SalePrice);
-                    break;
-                default: // newest
-                    query = query.OrderByDescending(p => p.CreatedAt);
-                    break;
-            }
+                "oldest" => baseQuery.OrderBy(p => p.CreatedAt),
+                "priceinc" => baseQuery.OrderBy(p => p.SalePrice),
+                "pricedesc" => baseQuery.OrderByDescending(p => p.SalePrice),
+                "sold" => baseQuery.OrderByDescending(p => p.Sold),
+                _ => baseQuery.OrderByDescending(p => p.CreatedAt) // newest - default
+            };
 
-            var totalItems = await query.CountAsync();
+            // Get total count before including related data (more efficient)
+            var totalItems = await baseQuery.CountAsync();
 
-            var items = await query
+            var items = await baseQuery
                 .Skip(((productQuery.Page ?? 1) - 1) * (productQuery.PageSize ?? 10))
                 .Take(productQuery.PageSize ?? 10)
+                .Include(p => p.ProductLine)
+                .Include(p => p.Colors)
+                    .ThenInclude(c => c.Images)
+                .Include(p => p.Discounts)
+                    .ThenInclude(pd => pd.Discount)
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -188,12 +174,29 @@ namespace api.Repositories
             _db.Colors.Remove(color);
             await _db.SaveChangesAsync();
         }
-
         public async Task<IEnumerable<ProductImage>> AddImagesAsync(IEnumerable<ProductImage> images)
         {
             _db.ProductImages.AddRange(images);
             await _db.SaveChangesAsync();
             return images;
+        }
+
+        // Bulk operations for better performance
+        public async Task<bool> UpdateProductsActiveStatusAsync(List<int> productIds, bool isActive)
+        {
+            if (productIds == null || productIds.Count == 0) return false;
+
+            var products = await _db.Products
+                .Where(p => productIds.Contains(p.Id))
+                .ToListAsync();
+
+            foreach (var product in products)
+            {
+                product.IsActive = isActive;
+                product.UpdatedAt = DateTime.Now;
+            }
+
+            return await _db.SaveChangesAsync() > 0;
         }
     }
 }

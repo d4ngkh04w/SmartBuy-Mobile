@@ -7,9 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/order")]
-    [ApiController]
-    public class OrderController : ControllerBase
+    public class OrderController : BaseController
     {
         private readonly IOrderService _orderService;
 
@@ -89,7 +87,7 @@ namespace api.Controllers
 
             var order = await _orderService.GetOrderByIdAsync(id);
 
-            if (!isAdmin && order.UserId != userId && !(updateOrderStatusDTO.Status == "Hoàn thành" || updateOrderStatusDTO.Status == "Đã trả hàng") )
+            if (!isAdmin && order.UserId != userId && !(updateOrderStatusDTO.Status == "Hoàn thành" || updateOrderStatusDTO.Status == "Đã trả hàng"))
             {
                 throw new ForbiddenException();
             }

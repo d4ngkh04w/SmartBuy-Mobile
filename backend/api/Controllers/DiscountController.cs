@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/discount")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "admin", Roles = "admin")]
-    public class DiscountController : ControllerBase
+    public class DiscountController : BaseController
     {
         private readonly IDiscountService _discountService;
 

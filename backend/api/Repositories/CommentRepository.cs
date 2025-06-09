@@ -18,7 +18,7 @@ namespace api.Repositories
         {
             return await _db.Comments
                 .Include(c => c.User)
-                .FirstOrDefaultAsync(c => c.Id == id);
+                .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
         }
 
         public async Task<List<Comment>> GetCommentsByProductIdAsync(int productId, int page, int pageSize)
@@ -26,10 +26,11 @@ namespace api.Repositories
             // Lấy các bình luận không có replies (ParentId = null) và phân trang
             return await _db.Comments
                 .Include(c => c.User)
-                .Where(c => c.ProductId == productId && c.ParentId == null)
+                .Where(c => c.ProductId == productId && c.ParentId == null && !c.IsDeleted)
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
@@ -37,15 +38,17 @@ namespace api.Repositories
         {
             return await _db.Comments
                 .Include(c => c.User)
-                .Where(c => c.ParentId == parentId)
+                .Where(c => c.ParentId == parentId && !c.IsDeleted)
                 .OrderBy(c => c.CreatedAt)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
         public async Task<int> GetCommentsCountByProductIdAsync(int productId)
         {
             return await _db.Comments
-                .Where(c => c.ProductId == productId && c.ParentId == null)
+                .Where(c => c.ProductId == productId && c.ParentId == null && !c.IsDeleted)
+                .AsNoTracking()
                 .CountAsync();
         }
 
@@ -82,7 +85,7 @@ namespace api.Repositories
         public async Task<bool> AddReactionAsync(int commentId, Guid userId, bool isLike)
         {
             var comment = await _db.Comments.FindAsync(commentId);
-            if (comment == null)
+            if (comment == null || comment.IsDeleted)
                 return false;
 
             if (isLike)
@@ -109,13 +112,12 @@ namespace api.Repositories
         public async Task<int> GetProductRatingCountAsync(int productId)
         {
             return await _db.Comments
-                .Where(c => c.ProductId == productId && c.Rating.HasValue)
+                .Where(c => c.ProductId == productId && c.Rating.HasValue && !c.IsDeleted)
                 .CountAsync();
         }
 
         public async Task<Dictionary<int, int>> GetProductRatingDistributionAsync(int productId)
         {
-            // Initialize dictionary with all possible ratings (1-5) set to 0
             var distribution = new Dictionary<int, int>
             {
                 { 1, 0 },
@@ -125,14 +127,12 @@ namespace api.Repositories
                 { 5, 0 }
             };
 
-            // Get rating counts grouped by rating value
             var ratingGroups = await _db.Comments
-                .Where(c => c.ProductId == productId && c.Rating.HasValue)
+                .Where(c => c.ProductId == productId && c.Rating.HasValue && !c.IsDeleted)
                 .GroupBy(c => c.Rating!.Value)
                 .Select(g => new { Rating = g.Key, Count = g.Count() })
                 .ToListAsync();
 
-            // Update the distribution dictionary with actual counts
             foreach (var group in ratingGroups)
             {
                 if (group.Rating >= 1 && group.Rating <= 5)

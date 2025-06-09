@@ -18,6 +18,7 @@ namespace api.Repositories
         {
             return await _context.Discounts
                 .OrderByDescending(d => d.StartDate)
+                .AsNoTracking()
                 .ToListAsync();
         }
 
@@ -41,7 +42,6 @@ namespace api.Repositories
                 return null;
             }
 
-            // Update properties
             discount.DiscountPercentage = updatedDiscount.DiscountPercentage;
             discount.StartDate = updatedDiscount.StartDate;
             discount.EndDate = updatedDiscount.EndDate;
@@ -132,7 +132,7 @@ namespace api.Repositories
                 .Select(pd => pd.Product!)
                 .ToListAsync();
         }
-        
+
 
         public async Task<IEnumerable<Discount>> GetDiscountsByProductIdAsync(int productId)
         {

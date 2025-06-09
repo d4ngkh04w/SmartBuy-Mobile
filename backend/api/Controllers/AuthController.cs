@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/auth")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "smart", Roles = "admin,user")]
-    public class AuthController : ControllerBase
+    public class AuthController : BaseController
     {
         private readonly IAuthService _authService;
         private readonly ITokenService _tokenService;

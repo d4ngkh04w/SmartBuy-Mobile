@@ -170,15 +170,6 @@ namespace api.Services
             return updatedOrder.ToOrderDTO();
         }
 
-        // public async Task DeleteOrderAsync(Guid id)
-        // {
-        //     var result = await _orderRepository.DeleteOrderAsync(id);
-        //     if (!result)
-        //     {
-        //         throw new NotFoundException("Order not found");
-        //     }
-        // }
-
         public async Task<IEnumerable<OrderDTO>> GetAllOrdersAsync()
         {
             var orders = await _orderRepository.GetAllOrdersAsync();
@@ -233,9 +224,8 @@ namespace api.Services
             {
                 order.DeliveryDate = updateOrderStatusDTO.DeliveryDate ?? DateTime.Now;
             }
-
             // Nếu đơn hàng chuyển sang trạng thái "Hoàn thành", tăng số lượng đã bán của sản phẩm
-            if (updateOrderStatusDTO.Status == "Hoàn thành")
+            else if (updateOrderStatusDTO.Status == "Hoàn thành")
             {
                 foreach (var item in order.OrderItems)
                 {
@@ -245,6 +235,24 @@ namespace api.Services
                         product.Sold += item.Quantity;
                         await _productRepository.UpdateAsync(product);
                         _cacheService.RemoveProductCache(product.Id);
+                    }
+                }
+                _cacheService.RemoveAllProductsCache();
+            }
+            else if (updateOrderStatusDTO.Status == "Đã trả hàng" || updateOrderStatusDTO.Status == "Đã huỷ")
+            {
+                foreach (var item in order.OrderItems)
+                {
+                    var product = await _productRepository.GetByIdAsync(item.ProductId);
+                    if (product != null)
+                    {
+                        var color = product.Colors.FirstOrDefault(c => c.Id == item.ColorId);
+                        if (color != null)
+                        {
+                            color.Quantity += item.Quantity;
+                            await _productRepository.UpdateAsync(product);
+                            _cacheService.RemoveProductCache(product.Id);
+                        }
                     }
                 }
                 _cacheService.RemoveAllProductsCache();

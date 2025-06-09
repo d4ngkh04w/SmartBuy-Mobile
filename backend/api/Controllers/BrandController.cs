@@ -7,10 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/brand")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "admin", Roles = "admin")]
-    public class BrandController : ControllerBase
+    public class BrandController : BaseController
     {
         private readonly IBrandService _brandService;
 

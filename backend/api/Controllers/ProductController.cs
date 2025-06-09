@@ -7,10 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/product")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "admin", Roles = "admin")]
-    public class ProductController : ControllerBase
+    public class ProductController : BaseController
     {
         private readonly IProductService _productService;
 

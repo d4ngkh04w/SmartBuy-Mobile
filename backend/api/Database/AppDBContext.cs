@@ -20,8 +20,6 @@ namespace api.Database
         public DbSet<ProductDiscount> ProductDiscounts { get; set; } = null!;
         public DbSet<Discount> Discounts { get; set; } = null!;
         public DbSet<ProductDetail> ProductDetails { get; set; } = null!;
-        // public DbSet<Tag> Tags { get; set; } = null!;
-        // public DbSet<ProductTag> ProductTags { get; set; } = null!;
         public DbSet<Cart> Carts { get; set; } = null!;
         public DbSet<CartItem> CartItems { get; set; } = null!;
         public DbSet<Comment> Comments { get; set; } = null!;
@@ -40,9 +38,15 @@ namespace api.Database
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<ProductLine>()
-                .HasIndex(pl => new { pl.Name, pl.BrandId })
-                .IsUnique();
+            builder.Entity<UserToken>()
+                .HasIndex(t => t.TokenHash);
+            builder.Entity<UserToken>()
+                .HasIndex(t => t.ExpiryDate);
+            builder.Entity<UserToken>()
+                .HasIndex(t => t.TokenType);
+
+            builder.Entity<Order>()
+                .HasIndex(o => o.Status);
 
             // Cấu hình mối quan hệ Brand - ProductLine
             builder.Entity<Brand>()
@@ -50,6 +54,9 @@ namespace api.Database
                 .WithOne(pl => pl.Brand)
                 .HasForeignKey(pl => pl.BrandId)
                 .OnDelete(DeleteBehavior.Cascade); // Xóa thương hiệu sẽ xóa tất cả dòng sản phẩm của nó
+            builder.Entity<Brand>()
+                .HasIndex(b => b.Name)
+                .IsUnique();
 
             // Cấu hình mối quan hệ ProductLine - Product
             builder.Entity<ProductLine>()
@@ -57,6 +64,9 @@ namespace api.Database
                 .WithOne(p => p.ProductLine)
                 .HasForeignKey(p => p.ProductLineId)
                 .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<ProductLine>()
+                .HasIndex(pl => pl.Name)
+                .IsUnique();
 
             // Cấu hình mối quan hệ Product - ProductColor
             builder.Entity<Product>()
@@ -95,22 +105,6 @@ namespace api.Database
                 .HasForeignKey<ProductDetail>(d => d.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Cấu hình mối quan hệ Product - Tag
-            // builder.Entity<ProductTag>()
-            //     .HasKey(pt => new { pt.ProductId, pt.TagId });
-
-            // builder.Entity<ProductTag>()
-            //     .HasOne(pt => pt.Product)
-            //     .WithMany(p => p.ProductTags)
-            //     .HasForeignKey(pt => pt.ProductId)
-            //     .OnDelete(DeleteBehavior.Cascade);
-
-            // builder.Entity<ProductTag>()
-            //     .HasOne(pt => pt.Tag)
-            //     .WithMany(t => t.ProductTags)
-            //     .HasForeignKey(pt => pt.TagId)
-            //     .OnDelete(DeleteBehavior.Cascade);
-
             // Cấu hình mối quan hệ User - Cart
             builder.Entity<User>()
                 .HasOne(u => u.Cart)
@@ -131,12 +125,6 @@ namespace api.Database
                 .HasForeignKey(c => c.ProductId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            builder.Entity<Comment>()
-                .HasOne(c => c.Parent)
-                .WithMany()
-                .HasForeignKey(c => c.ParentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             // Thêm tài khoản admin
             builder.Entity<User>().HasData(
                 new User
@@ -145,7 +133,7 @@ namespace api.Database
                     EmailConfirmed = true,
                     PhoneNumber = ConfigHelper.AdminPhoneNumber,
                     PhoneNumberConfirmed = true,
-                    Password = BCrypt.Net.BCrypt.HashPassword(ConfigHelper.AdminPassword),
+                    Password = BCrypt.Net.BCrypt.HashPassword(ConfigHelper.AdminPassword, BCrypt.Net.BCrypt.GenerateSalt(11, 'b')),
                     Name = ConfigHelper.AdminName,
                     Role = "admin",
                     CreatedAt = DateTime.Now,

@@ -6,10 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/admin/auth")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "admin", Roles = "admin")]
-    public class AuthAdminController : ControllerBase
+    public class AuthAdminController : BaseAdminAuthController
     {
         private readonly IAuthService _authService;
         public AuthAdminController(IAuthService authService)
@@ -32,6 +30,7 @@ namespace api.Controllers
         {
             return Ok(new
             {
+                Success = true,
                 Message = "Token is valid",
                 UserId = HttpContextHelper.CurrentUserId,
                 Email = HttpContextHelper.CurrentUserEmail,

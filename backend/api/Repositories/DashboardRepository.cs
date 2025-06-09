@@ -29,7 +29,6 @@ namespace api.Repositories
                 query = query.Where(o => o.DeliveryDate <= endDate.Value);
             }
 
-            // Group by product and sum quantities and revenues
             var result = await query
                 .SelectMany(o => o.OrderItems)
                 .GroupBy(oi => new { oi.ProductId, oi.Product!.Name })
@@ -41,14 +40,14 @@ namespace api.Repositories
                     Revenue = g.Sum(oi => oi.Price * oi.Quantity * (1 - oi.Discount / 100)),
                     CreatedAt = g.First().Product!.CreatedAt
                 })
+                .AsNoTracking()
                 .ToListAsync();
             foreach (var product in result)
             {
                 product.CreatedAtFormatted = product.CreatedAt.ToString("yyyy-MM-dd");
             }
 
-            // Sort the results based on the sortBy parameter
-            return sortBy.ToLower() == "revenue"
+            return sortBy.Equals("revenue", StringComparison.OrdinalIgnoreCase)
                 ? result.OrderByDescending(p => p.Revenue).ToList()
                 : result.OrderByDescending(p => p.Quantity).ToList();
         }
@@ -58,40 +57,36 @@ namespace api.Repositories
             var currentQuery = _db.Orders.AsQueryable();
             var previousQuery = _db.Orders.AsQueryable();
 
-            // Apply date filters for current period
             if (startDate.HasValue)
             {
                 currentQuery = currentQuery.Where(o => o.OrderDate >= startDate.Value);
             }
-            
+
             if (endDate.HasValue)
             {
                 currentQuery = currentQuery.Where(o => o.OrderDate <= endDate.Value);
             }
 
-            // Calculate previous period for comparison
             if (startDate.HasValue && endDate.HasValue)
             {
                 var periodLength = endDate.Value - startDate.Value;
                 var previousStart = startDate.Value - periodLength;
                 var previousEnd = startDate.Value;
-                
+
                 previousQuery = previousQuery.Where(o => o.OrderDate >= previousStart && o.OrderDate < previousEnd);
             }
 
-            // Current period stats
-            var currentOrders = await currentQuery.ToListAsync();
+            var currentOrders = await currentQuery.AsNoTracking().ToListAsync();
             var currentCompleted = currentOrders.Where(o => o.Status == "Hoàn thành").ToList();
-            
+
             var totalOrders = currentOrders.Count;
             var totalRevenue = currentCompleted.Sum(o => o.TotalAmount);
             var avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
             var completionRate = totalOrders > 0 ? (decimal)currentCompleted.Count / totalOrders * 100 : 0;
 
-            // Previous period stats for comparison
-            var previousOrders = await previousQuery.ToListAsync();
+            var previousOrders = await previousQuery.AsNoTracking().ToListAsync();
             var previousCompleted = previousOrders.Where(o => o.Status == "Hoàn thành").ToList();
-            
+
             var prevTotalOrders = previousOrders.Count;
             var prevTotalRevenue = previousCompleted.Sum(o => o.TotalAmount);
             var prevAvgOrderValue = prevTotalOrders > 0 ? prevTotalRevenue / prevTotalOrders : 0;
@@ -124,7 +119,7 @@ namespace api.Repositories
             {
                 query = query.Where(o => o.OrderDate >= startDate.Value);
             }
-            
+
             if (endDate.HasValue)
             {
                 query = query.Where(o => o.OrderDate <= endDate.Value);
@@ -133,6 +128,7 @@ namespace api.Repositories
             var statusCounts = await query
                 .GroupBy(o => o.Status)
                 .Select(g => new { Status = g.Key, Count = g.Count() })
+                .AsNoTracking()
                 .ToListAsync();
 
             var totalOrders = statusCounts.Sum(s => s.Count);
@@ -153,7 +149,7 @@ namespace api.Repositories
             {
                 query = query.Where(o => o.OrderDate >= startDate.Value);
             }
-            
+
             if (endDate.HasValue)
             {
                 query = query.Where(o => o.OrderDate <= endDate.Value);
@@ -162,6 +158,7 @@ namespace api.Repositories
             var paymentCounts = await query
                 .GroupBy(o => o.PaymentMethod)
                 .Select(g => new { Method = g.Key, Count = g.Count() })
+                .AsNoTracking()
                 .ToListAsync();
 
             var totalOrders = paymentCounts.Sum(p => p.Count);
@@ -176,11 +173,9 @@ namespace api.Repositories
 
         public async Task<List<RevenueChartDTO>> GetRevenueChartDataAsync(DateTime? startDate, DateTime? endDate, string period)
         {
-            // Start with all completed orders
             var completedOrders = _db.Orders
                 .Where(o => o.Status == "Hoàn thành");
 
-            // Apply date filters if provided
             if (startDate.HasValue)
             {
                 completedOrders = completedOrders.Where(o => o.DeliveryDate >= startDate.Value);
@@ -191,13 +186,11 @@ namespace api.Repositories
                 completedOrders = completedOrders.Where(o => o.DeliveryDate <= endDate.Value);
             }
 
-            // Ensure we're only working with orders that have a delivery date
             completedOrders = completedOrders.Where(o => o.DeliveryDate.HasValue);
 
             switch (period.ToLower())
             {
                 case "day":
-                    // For daily grouping - using a client-side evaluation approach to avoid EF Core translation issues
                     var dailyResults = await completedOrders
                         .GroupBy(o => o.DeliveryDate!.Value.Date)
                         .Select(g => new
@@ -207,6 +200,7 @@ namespace api.Repositories
                             OrderCount = g.Count()
                         })
                         .OrderBy(r => r.Date)
+                        .AsNoTracking()
                         .ToListAsync();
 
                     return dailyResults.Select(r => new RevenueChartDTO
@@ -219,7 +213,6 @@ namespace api.Repositories
 
                 case "month":
                 default:
-                    // For monthly grouping - using a client-side evaluation approach to avoid EF Core translation issues
                     var monthlyResults = await completedOrders
                         .GroupBy(o => new { o.DeliveryDate!.Value.Year, o.DeliveryDate!.Value.Month })
                         .Select(g => new
@@ -231,6 +224,7 @@ namespace api.Repositories
                         })
                         .OrderBy(r => r.Year)
                         .ThenBy(r => r.Month)
+                        .AsNoTracking()
                         .ToListAsync();
 
                     return monthlyResults.Select(r => new RevenueChartDTO

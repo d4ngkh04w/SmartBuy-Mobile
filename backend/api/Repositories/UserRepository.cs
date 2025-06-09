@@ -28,12 +28,10 @@ namespace api.Repositories
 
         public async Task<IEnumerable<User>> GetAllUsersAsync()
         {
-            return await db.Users.Where(u => u.Role == "user").ToListAsync();
-        }
-
-        public async Task<IEnumerable<User>> GetAllUsersWithAllRolesAsync()
-        {
-            return await db.Users.ToListAsync();
+            return await db.Users.Where(u => u.Role == "user")
+                .OrderByDescending(u => u.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         public async Task<User?> GetUserByEmailAsync(string email)

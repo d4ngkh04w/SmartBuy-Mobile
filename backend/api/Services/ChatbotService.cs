@@ -1,12 +1,12 @@
-using api.DTOs.Chatbot;
-using api.Interfaces.Repositories;
-using api.Interfaces.Services;
 using System.Text;
 using System.Text.Json;
+using api.DTOs.Chatbot;
+using api.Helpers;
+using api.Interfaces.Repositories;
+using api.Interfaces.Services;
 
 namespace api.Services
-{
-    public class ChatbotService : IChatbotService
+{    public class ChatbotService : IChatbotService
     {
         private readonly IProductRepository _productRepository;
         private readonly IBrandRepository _brandRepository;
@@ -14,14 +14,14 @@ namespace api.Services
         private readonly IDiscountRepository _discountRepository;
         private readonly HttpClient _httpClient;
         private readonly IConfiguration _configuration;
-
-        public ChatbotService(
+        private readonly GeminiChatbotService _geminiService;        public ChatbotService(
             IProductRepository productRepository,
             IBrandRepository brandRepository,
             IProductLineRepository productLineRepository,
             IDiscountRepository discountRepository,
             HttpClient httpClient,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            GeminiChatbotService geminiService)
         {
             _productRepository = productRepository;
             _brandRepository = brandRepository;
@@ -29,6 +29,7 @@ namespace api.Services
             _discountRepository = discountRepository;
             _httpClient = httpClient;
             _configuration = configuration;
+            _geminiService = geminiService;
         }
 
         public async Task<ChatResponseDTO> ProcessMessageAsync(ChatMessageDTO messageDTO)
@@ -37,7 +38,7 @@ namespace api.Services
             {
                 // Lấy context sản phẩm
                 var context = await GetProductContextAsync();
-                
+
                 // Tạo response từ OpenAI hoặc logic tùy chỉnh
                 var content = await GenerateResponseAsync(messageDTO.Message, context);
 
@@ -50,7 +51,8 @@ namespace api.Services
                     IsError = false,
                     SuggestedActions = GenerateSuggestedActions(messageDTO.Message)
                 };
-            }            catch (Exception)
+            }
+            catch (Exception)
             {
                 return new ChatResponseDTO
                 {
@@ -61,58 +63,28 @@ namespace api.Services
                     IsError = true
                 };
             }
-        }
-
-        public async Task<string> GenerateResponseAsync(string message, ProductContextDTO? context = null)
+        }        public async Task<string> GenerateResponseAsync(string message, ProductContextDTO? context = null)
         {
-            var openAiApiKey = _configuration["OpenAI:ApiKey"];
-            
-            if (string.IsNullOrEmpty(openAiApiKey))
+            // Chỉ dùng Gemini
+            var geminiKey = _configuration["Gemini:ApiKey"];
+            if (!string.IsNullOrEmpty(geminiKey))
             {
-                return GenerateFallbackResponse(message, context);
-            }
-
-            try
-            {
-                var systemPrompt = BuildSystemPrompt(context);
-                var requestBody = new
+                try
                 {
-                    model = "gpt-3.5-turbo",
-                    messages = new[]
-                    {
-                        new { role = "system", content = systemPrompt },
-                        new { role = "user", content = message }
-                    },
-                    max_tokens = 500,
-                    temperature = 0.7
-                };
-
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {openAiApiKey}");
-
-                var json = JsonSerializer.Serialize(requestBody);
-                var httpContent = new StringContent(json, Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", httpContent);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    var responseData = JsonSerializer.Deserialize<dynamic>(responseContent);
-                    
-                    // Parse response and extract content
-                    // This is simplified - you might want to use a proper JSON library
-                    return ExtractContentFromOpenAIResponse(responseContent);
+                    var systemPrompt = BuildSystemPrompt(context);
+                    var response = await _geminiService.GenerateResponseAsync(systemPrompt, message);
+                    return response;
                 }
-                else
+                catch (Exception ex)
                 {
+                    Console.WriteLine($"Gemini API Error: {ex.Message}");
+                    // Fallback nếu Gemini fail
                     return GenerateFallbackResponse(message, context);
                 }
             }
-            catch
-            {
-                return GenerateFallbackResponse(message, context);
-            }
+
+            // Fallback nếu không có Gemini key
+            return GenerateFallbackResponse(message, context);
         }
 
         public List<string> GetQuickQuestions()
@@ -131,11 +103,11 @@ namespace api.Services
         public async Task<ProductContextDTO> GetProductContextAsync()
         {
             try
-            {               
+            {
                 var products = await _productRepository.GetAllAsync();
                 var topProducts = products
-                    .Where(p => p.IsActive) 
-                    .OrderBy(p => p.Name) 
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.Name)
                     .Take(10)
                     .Select(p => new ProductSummaryDTO
                     {
@@ -151,7 +123,7 @@ namespace api.Services
                 var brandNames = brands.Where(b => b.IsActive).Select(b => b.Name).ToList();                // Lấy danh sách product lines (categories)
                 var productLines = await _productLineRepository.GetProductLinesAsync(new api.Queries.ProductLineQuery());
                 var categoryNames = productLines.Where(pl => pl.IsActive).Select(pl => pl.Name).ToList();                // Lấy khuyến mãi hiện tại
-                var discounts = await _discountRepository.GetAllDiscountsAsync();                var currentPromotions = discounts.Where(d => d.StartDate <= DateTime.UtcNow && d.EndDate >= DateTime.UtcNow)
+                var discounts = await _discountRepository.GetAllDiscountsAsync(); var currentPromotions = discounts.Where(d => d.StartDate <= DateTime.UtcNow && d.EndDate >= DateTime.UtcNow)
                     .Select(d => new PromotionDTO
                     {
                         Title = $"Giảm giá {(d.DiscountPercentage > 0 ? $"{d.DiscountPercentage}%" : $"{d.DiscountAmount:N0}đ")}",
@@ -200,7 +172,7 @@ Quy tắc trả lời:
             if (context != null)
             {
                 prompt += "\n\nThông tin sản phẩm hiện tại:\n";
-                
+
                 if (context.AvailableProducts?.Any() == true)
                 {
                     prompt += "Sản phẩm nổi bật:\n";
@@ -226,11 +198,12 @@ Quy tắc trả lời:
             }
 
             return prompt;
-        }        private string GenerateFallbackResponse(string message, ProductContextDTO? context)
+        }
+        private string GenerateFallbackResponse(string message, ProductContextDTO? context)
         {
             var lowerMessage = message.ToLower();
 
-            // 🏷️ Cửa hàng có bao nhiêu nhãn hàng/brand
+            // Cửa hàng có bao nhiêu nhãn hàng/brand
             if ((lowerMessage.Contains("nhãn hàng") || lowerMessage.Contains("brand") || lowerMessage.Contains("thương hiệu")) &&
                 lowerMessage.Contains("bao nhiêu"))
             {
@@ -238,20 +211,20 @@ Quy tắc trả lời:
                 return $"🏷️ Hiện tại cửa hàng SmartBuy có **{brandCount} nhãn hàng/brand** khác nhau.\n\nCác thương hiệu bao gồm: {string.Join(", ", context?.Brands?.Take(5) ?? new List<string>())}{(brandCount > 5 ? "..." : "")}";
             }
 
-            // 📂 Cửa hàng có bao nhiêu dòng sản phẩm/productline
+            // Cửa hàng có bao nhiêu dòng sản phẩm/productline
             if ((lowerMessage.Contains("dòng sản phẩm") || lowerMessage.Contains("productline") || lowerMessage.Contains("danh mục")) &&
                 lowerMessage.Contains("bao nhiêu"))
             {
                 var categoryCount = context?.Categories?.Count ?? 0;
                 return $"📂 Hiện tại cửa hàng SmartBuy có **{categoryCount} dòng sản phẩm/productline** khác nhau.\n\nCác danh mục bao gồm: {string.Join(", ", context?.Categories?.Take(5) ?? new List<string>())}{(categoryCount > 5 ? "..." : "")}";
-            }            // 📱 iPhone hiện tại có bao nhiêu loại sản phẩm
-            if (lowerMessage.Contains("iphone") && 
+            }            // iPhone hiện tại có bao nhiêu loại sản phẩm
+            if (lowerMessage.Contains("iphone") &&
                 (lowerMessage.Contains("bao nhiêu") || lowerMessage.Contains("có bao nhiêu")) &&
                 (lowerMessage.Contains("loại") || lowerMessage.Contains("sản phẩm") || lowerMessage.Contains("model")))
             {
                 var iphoneProducts = context?.AvailableProducts?.Where(p => p.Name.ToLower().Contains("iphone")).ToList();
                 var iphoneCount = iphoneProducts?.Count ?? 0;
-                
+
                 if (iphoneCount > 0 && iphoneProducts != null)
                 {
                     var iphoneText = $"📱 Hiện tại cửa hàng có **{iphoneCount} loại sản phẩm iPhone**:\n\n";
@@ -264,7 +237,7 @@ Quy tắc trả lời:
                 return "📱 Hiện tại cửa hàng chưa có sản phẩm iPhone nào. Vui lòng quay lại sau!";
             }
 
-            // 🏆 Cho tôi những sản phẩm bán chạy nhất
+            // Cho tôi những sản phẩm bán chạy nhất
             if (lowerMessage.Contains("sản phẩm") && (lowerMessage.Contains("bán chạy") || lowerMessage.Contains("phổ biến") || lowerMessage.Contains("nổi bật")))
             {
                 var products = context?.AvailableProducts;
@@ -283,7 +256,7 @@ Quy tắc trả lời:
                 return "Hiện tại chúng tôi đang cập nhật danh sách sản phẩm bán chạy. Vui lòng quay lại sau!";
             }
 
-            // 💳 Có bao nhiêu cách thanh toán
+            // Có bao nhiêu cách thanh toán
             if ((lowerMessage.Contains("bao nhiêu") || lowerMessage.Contains("có bao nhiêu")) &&
                 (lowerMessage.Contains("cách thanh toán") || lowerMessage.Contains("phương thức thanh toán") || lowerMessage.Contains("thanh toán")))
             {
@@ -308,7 +281,7 @@ Quy tắc trả lời:
             if (lowerMessage.Contains("thanh toán"))
             {
                 return "SmartBuy hỗ trợ các phương thức thanh toán:\n- Thanh toán khi nhận hàng (COD)\n- Chuyển khoản ngân hàng\n- Ví điện tử (Momo, ZaloPay)\n- Thẻ tín dụng/ghi nợ\n\nTất cả đều an toàn và bảo mật.";
-            }           
+            }
 
             if (lowerMessage.Contains("khuyến mãi") || lowerMessage.Contains("giảm giá"))
             {
@@ -342,40 +315,19 @@ Quy tắc trả lời:
 
             if (lowerMessage.Contains("sản phẩm") || lowerMessage.Contains("tư vấn"))
             {
-                suggestions.AddRange(new[] { "Xem sản phẩm bán chạy", "Tìm theo thương hiệu", "So sánh giá" });
+                suggestions.AddRange(["Xem sản phẩm bán chạy", "Tìm theo thương hiệu", "So sánh giá"]);
             }
             else if (lowerMessage.Contains("đặt hàng"))
             {
-                suggestions.AddRange(new[] { "Hướng dẫn thanh toán", "Chính sách giao hàng", "Theo dõi đơn hàng" });
+                suggestions.AddRange(["Hướng dẫn thanh toán", "Chính sách giao hàng", "Theo dõi đơn hàng"]);
             }
             else
             {
-                suggestions.AddRange(new[] { "Sản phẩm mới", "Khuyến mãi hot", "Hỗ trợ đặt hàng" });
+                suggestions.AddRange(["Sản phẩm mới", "Khuyến mãi hot", "Hỗ trợ đặt hàng"]);
             }
 
             return suggestions.Take(3).ToList();
         }
-
-        private string ExtractContentFromOpenAIResponse(string responseJson)
-        {
-            try
-            {
-                using var document = JsonDocument.Parse(responseJson);
-                var choices = document.RootElement.GetProperty("choices");
-                if (choices.GetArrayLength() > 0)
-                {
-                    var firstChoice = choices[0];
-                    var message = firstChoice.GetProperty("message");
-                    var content = message.GetProperty("content").GetString();
-                    return content ?? "Xin lỗi, tôi không thể trả lời câu hỏi này.";
-                }
-            }
-            catch
-            {
-                // Fall through to default response
-            }
-
-            return "Xin lỗi, tôi không thể trả lời câu hỏi này lúc này.";
-        }
+      
     }
 }

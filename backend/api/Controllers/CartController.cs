@@ -7,10 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace api.Controllers
 {
-    [Route("api/v1/cart")]
-    [ApiController]
     [Authorize(AuthenticationSchemes = "user", Roles = "user")]
-    public class CartController : ControllerBase
+    public class CartController : BaseController
     {
         private readonly ICartService _cartService;
 
