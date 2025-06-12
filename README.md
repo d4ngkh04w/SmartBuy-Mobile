@@ -78,11 +78,25 @@ The project follows a modern architecture with separated backend and frontend:
     - Configure JWT settings
     - Set up other required configurations
 
-3. Run the application:
+3. Update your database:
+
+    Install EF Core CLI
+
     ```
-    dotnet run --project backend/api
+    dotnet tool install --global dotnet-ef
     ```
-    The API will be available at `https://localhost:5000` by default.
+
+    Create migration and update database
+
+    ```
+    dotnet ef migrations add Init && dotnet ef database update
+    ```
+
+4. Run the application:
+    ```
+    dotnet run
+    ```
+    The API will be available at `http://localhost:5000` by default.
 
 ### 🎨 Frontend Setup
 
@@ -154,7 +168,7 @@ The project follows a modern architecture with separated backend and frontend:
 
 ## 📚 API Documentation
 
-API documentation is available through Swagger UI at `https://localhost:5000/swagger` when the backend is running.
+API documentation is available through Swagger UI at `http://localhost:5000/swagger` when the backend is running.
 
 ## 📄 License
 
