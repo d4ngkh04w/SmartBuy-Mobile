@@ -21,7 +21,7 @@ namespace api.Helpers
         private static string? _adminName;
         private static string? _adminUrl;
         private static string? _userUrl;
-        private static string? _openAIKey;
+        private static string? _geminiApiKey;
 
         public static void Initialize(IConfiguration configuration)
         {
@@ -44,7 +44,7 @@ namespace api.Helpers
             _adminName = configuration["Admin:Name"] ?? "SmartBuy Mobile";
             _adminUrl = configuration["Frontend:AdminUrl"] ?? "http://localhost:4000";
             _userUrl = configuration["Frontend:UserUrl"] ?? "http://localhost:3000";
-            _openAIKey = configuration["OpenAI:ApiKey"] ?? string.Empty;
+            _geminiApiKey = configuration["Gemini:ApiKey"] ?? string.Empty;
         }
 
         public static string GoogleClientId => _googleClientId!;
@@ -66,6 +66,6 @@ namespace api.Helpers
         public static string AdminName => _adminName!;
         public static string AdminUrl => _adminUrl!;
         public static string UserUrl => _userUrl!;
-        public static string OpenAIKey => _openAIKey!;
+        public static string GeminiApiKey => _geminiApiKey!;
     }
 }

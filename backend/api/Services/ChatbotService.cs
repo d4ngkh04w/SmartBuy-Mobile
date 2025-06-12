@@ -1,34 +1,28 @@
-using System.Text;
-using System.Text.Json;
 using api.DTOs.Chatbot;
 using api.Helpers;
 using api.Interfaces.Repositories;
 using api.Interfaces.Services;
 
 namespace api.Services
-{    public class ChatbotService : IChatbotService
+{
+    public class ChatbotService : IChatbotService
     {
         private readonly IProductRepository _productRepository;
         private readonly IBrandRepository _brandRepository;
         private readonly IProductLineRepository _productLineRepository;
         private readonly IDiscountRepository _discountRepository;
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _configuration;
-        private readonly GeminiChatbotService _geminiService;        public ChatbotService(
+        private readonly GeminiChatbotService _geminiService;
+        public ChatbotService(
             IProductRepository productRepository,
             IBrandRepository brandRepository,
             IProductLineRepository productLineRepository,
             IDiscountRepository discountRepository,
-            HttpClient httpClient,
-            IConfiguration configuration,
             GeminiChatbotService geminiService)
         {
             _productRepository = productRepository;
             _brandRepository = brandRepository;
             _productLineRepository = productLineRepository;
             _discountRepository = discountRepository;
-            _httpClient = httpClient;
-            _configuration = configuration;
             _geminiService = geminiService;
         }
 
@@ -39,7 +33,6 @@ namespace api.Services
                 // Lấy context sản phẩm
                 var context = await GetProductContextAsync();
 
-                // Tạo response từ OpenAI hoặc logic tùy chỉnh
                 var content = await GenerateResponseAsync(messageDTO.Message, context);
 
                 return new ChatResponseDTO
@@ -63,11 +56,10 @@ namespace api.Services
                     IsError = true
                 };
             }
-        }        public async Task<string> GenerateResponseAsync(string message, ProductContextDTO? context = null)
+        }
+        public async Task<string> GenerateResponseAsync(string message, ProductContextDTO? context = null)
         {
-            // Chỉ dùng Gemini
-            var geminiKey = _configuration["Gemini:ApiKey"];
-            if (!string.IsNullOrEmpty(geminiKey))
+            if (!string.IsNullOrEmpty(ConfigHelper.GeminiApiKey))
             {
                 try
                 {
@@ -78,7 +70,7 @@ namespace api.Services
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Gemini API Error: {ex.Message}");
-                    // Fallback nếu Gemini fail
+                    // Fallback
                     return GenerateFallbackResponse(message, context);
                 }
             }
@@ -152,7 +144,7 @@ namespace api.Services
             }
         }
 
-        private string BuildSystemPrompt(ProductContextDTO? context)
+        private static string BuildSystemPrompt(ProductContextDTO? context)
         {
             var prompt = @"Bạn là SmartBuy Assistant, một trợ lý AI thông minh cho website thương mại điện tử SmartBuy. 
 
@@ -199,7 +191,7 @@ Quy tắc trả lời:
 
             return prompt;
         }
-        private string GenerateFallbackResponse(string message, ProductContextDTO? context)
+        private static string GenerateFallbackResponse(string message, ProductContextDTO? context)
         {
             var lowerMessage = message.ToLower();
 
@@ -217,7 +209,8 @@ Quy tắc trả lời:
             {
                 var categoryCount = context?.Categories?.Count ?? 0;
                 return $"📂 Hiện tại cửa hàng SmartBuy có **{categoryCount} dòng sản phẩm/productline** khác nhau.\n\nCác danh mục bao gồm: {string.Join(", ", context?.Categories?.Take(5) ?? new List<string>())}{(categoryCount > 5 ? "..." : "")}";
-            }            // iPhone hiện tại có bao nhiêu loại sản phẩm
+            }
+            // iPhone hiện tại có bao nhiêu loại sản phẩm
             if (lowerMessage.Contains("iphone") &&
                 (lowerMessage.Contains("bao nhiêu") || lowerMessage.Contains("có bao nhiêu")) &&
                 (lowerMessage.Contains("loại") || lowerMessage.Contains("sản phẩm") || lowerMessage.Contains("model")))
@@ -308,7 +301,7 @@ Quy tắc trả lời:
                    "Bạn cần hỗ trợ gì cụ thể không?";
         }
 
-        private List<string> GenerateSuggestedActions(string message)
+        private static List<string> GenerateSuggestedActions(string message)
         {
             var lowerMessage = message.ToLower();
             var suggestions = new List<string>();
@@ -328,6 +321,6 @@ Quy tắc trả lời:
 
             return suggestions.Take(3).ToList();
         }
-      
+
     }
 }

@@ -47,8 +47,6 @@ namespace api.Configurations
             services.AddScoped<IChatbotService, ChatbotService>();
             services.AddScoped<GeminiChatbotService>();
 
-            services.AddScoped<IPaypalService, PaypalService>();
-            
             services.AddHttpClient();
 
             return services;

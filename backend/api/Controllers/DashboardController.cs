@@ -15,6 +15,7 @@ namespace api.Controllers
         {
             _dashboardService = dashboardService;
         }
+
         [HttpGet("top-products")]
         public async Task<IActionResult> GetTopProducts([FromQuery] DashboardDateRangeQuery query)
         {

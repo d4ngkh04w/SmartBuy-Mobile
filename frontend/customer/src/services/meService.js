@@ -47,24 +47,24 @@ class MeService {
 		).data.data;
 	}
 
-    async sendVerificationEmail() {
-        return await instance.post("/user/auth/send-verification-email");
-    }
-    async updateProfile(userInfo) {
-    const formData = new FormData();
-    Object.keys(userInfo).forEach(key => {
-        if (userInfo[key] !== undefined && userInfo[key] !== null) {
-            formData.append(key, userInfo[key]);
-        }
-    });
+	async sendVerificationEmail() {
+		return await instance.post("/user/auth/send-verification-email");
+	}
+	async updateProfile(userInfo) {
+		const formData = new FormData();
+		Object.keys(userInfo).forEach((key) => {
+			if (userInfo[key] !== undefined && userInfo[key] !== null) {
+				formData.append(key, userInfo[key]);
+			}
+		});
 
-    const response = await instance.put("/user/me", formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data'
-        }
-    });
-    return response.data.data;
-}
+		const response = await instance.put("/user/me", formData, {
+			headers: {
+				"Content-Type": "multipart/form-data",
+			},
+		});
+		return response.data.data;
+	}
 }
 
 const meService = new MeService();

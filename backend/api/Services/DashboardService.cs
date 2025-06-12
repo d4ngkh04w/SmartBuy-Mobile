@@ -12,7 +12,9 @@ namespace api.Services
         public DashboardService(IDashboardRepository dashboardRepository)
         {
             _dashboardRepository = dashboardRepository;
-        }        public async Task<List<TopProductDTO>> GetTopProductsAsync(DashboardDateRangeQuery query)
+        }
+
+        public async Task<List<TopProductDTO>> GetTopProductsAsync(DashboardDateRangeQuery query)
         {
             var data = await _dashboardRepository.GetTopProductsAsync(
                 query.StartDate,
@@ -21,7 +23,8 @@ namespace api.Services
             );
 
             return data;
-        }        public async Task<OrderReportDTO> GetOrderStatisticsAsync(DashboardDateRangeQuery query)
+        }
+        public async Task<OrderReportDTO> GetOrderStatisticsAsync(DashboardDateRangeQuery query)
         {
             var statistics = await _dashboardRepository.GetOrderStatisticsAsync(
                 query.StartDate,

@@ -12,7 +12,9 @@ namespace api.Repositories
         public CartRepository(AppDBContext context)
         {
             _context = context;
-        }        public async Task<Cart?> GetCartByUserIdAsync(Guid userId)
+        }
+
+        public async Task<Cart?> GetCartByUserIdAsync(Guid userId)
         {
             return await _context.Carts
                 .Include(c => c.Items!)

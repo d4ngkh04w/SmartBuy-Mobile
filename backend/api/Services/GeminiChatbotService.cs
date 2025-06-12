@@ -1,26 +1,24 @@
 using System.Text;
 using System.Text.Json;
-using api.DTOs.Chatbot;
+using api.Helpers;
 
 namespace api.Services
 {
     public class GeminiChatbotService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey;
 
-        public GeminiChatbotService(HttpClient httpClient, IConfiguration configuration)
+        public GeminiChatbotService(HttpClient httpClient)
         {
             _httpClient = httpClient;
-            _apiKey = configuration["Gemini:ApiKey"] ?? throw new InvalidOperationException("Gemini API key not found");
         }
 
         public async Task<string> GenerateResponseAsync(string systemPrompt, string userMessage)
         {
             try
             {
-                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={_apiKey}";
-                
+                var url = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={ConfigHelper.GeminiApiKey}";
+
                 var requestBody = new
                 {
                     contents = new[]
@@ -62,19 +60,19 @@ namespace api.Services
             }
         }
 
-        private string ExtractContentFromGeminiResponse(string responseJson)
+        private static string ExtractContentFromGeminiResponse(string responseJson)
         {
             try
             {
                 using var document = JsonDocument.Parse(responseJson);
                 var candidates = document.RootElement.GetProperty("candidates");
-                
+
                 if (candidates.GetArrayLength() > 0)
                 {
                     var firstCandidate = candidates[0];
                     var content = firstCandidate.GetProperty("content");
                     var parts = content.GetProperty("parts");
-                    
+
                     if (parts.GetArrayLength() > 0)
                     {
                         var text = parts[0].GetProperty("text").GetString();

@@ -2,9 +2,6 @@ namespace api.Utils
 {
     public static class DateTimeUtils
     {
-        /// <summary>
-        /// Chuyển đổi DateTime sang chuỗi theo định dạng ngày/tháng/năm
-        /// </summary>
         public static string ToRelativeTimeString(this DateTime dateTime)
         {
             var timeSpan = new TimeSpan(DateTime.Now.Ticks - dateTime.Ticks);
@@ -25,9 +22,6 @@ namespace api.Utils
             return years <= 1 ? "1 năm trước" : $"{years} năm trước";
         }
 
-        /// <summary>
-        /// Chuyển đổi DateTime sang chuỗi theo định dạng yyyy-MM-ddTHH:mm:ss
-        /// </summary>
         public static DateTime FormatDateTime(this DateTime dateTime)
         {
             return DateTime.Parse(dateTime.ToString("yyyy-MM-ddTHH:mm:ss"));
